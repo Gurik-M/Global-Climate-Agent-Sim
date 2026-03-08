@@ -1,0 +1,64 @@
+{
+  "decades_run": 5,
+  "global_emissions_by_decade": [
+    {
+      "energy_heat": 0.07848886968404843,
+      "transport": 0.1338307482824792,
+      "buildings": 0.11924201269485518,
+      "industry": 0.12137650256115545,
+      "deforestation": 0.06501647541475651,
+      "agriculture": 0.09228989829867434,
+      "carbon_removal": -0.1889839126219443,
+      "decade": 0
+    },
+    {
+      "energy_heat": 0.08595830522808409,
+      "transport": 0.13605347959939845,
+      "buildings": 0.12446004893446067,
+      "industry": 0.12806679534869975,
+      "deforestation": 0.05849771362342721,
+      "agriculture": 0.09115555867311477,
+      "carbon_removal": -0.20050208450175033,
+      "decade": 1
+    },
+    {
+      "energy_heat": 0.07893937156459627,
+      "transport": 0.13094948165236145,
+      "buildings": 0.1192449013285801,
+      "industry": 0.12191064729622907,
+      "deforestation": 0.06132192768086457,
+      "agriculture": 0.09228989829867434,
+      "carbon_removal": -0.19763033861425777,
+      "decade": 2
+    },
+    {
+      "energy_heat": 0.07970144771633829,
+      "transport": 0.1365303564890739,
+      "buildings": 0.12262779562356732,
+      "industry": 0.14210576267527983,
+      "deforestation": 0.0685302724258872,
+      "agriculture": 0.09115555867311477,
+      "carbon_removal": -0.16915368135973752,
+      "decade": 3
+    },
+    {
+      "energy_heat": 0.07924445000773403,
+      "transport": 0.13637464206349625,
+      "buildings": 0.12169035613749898,
+      "industry": 0.12191064729622907,
+      "deforestation": 0.07210317589184097,
+      "agriculture": 0.09115555867311477,
+      "carbon_removal": -0.19763033861425777,
+      "decade": 4
+    }
+  ],
+  "regions": [
+    "North America",
+    "Europe",
+    "Africa",
+    "South America",
+    "Southeast Asia",
+    "Asia Major",
+    "Australia"
+  ]
+}
