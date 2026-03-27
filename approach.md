@@ -6,10 +6,10 @@ Build a **global coupled socio-climate simulation** with:
 
 - **7 regional blocs**
 - **6 internal agents per bloc**
-- **10-year timesteps**
-- **endogenous emissions generation** by region and sector
-- **global emissions aggregation**
-- later coupling to a climate model that feeds damages back into each region
+- **5-year timesteps**
+- **endogenous emissions generation** by region and sector (interpretable formulas from state and agent outputs)
+- **global emissions aggregation**, then **empirical calibration** to real **1990–2021** sector trends (MtCO2e), and **ratio-based** global reporting (**current Mt ÷ 1990 baseline** per sector, so **1.0** = 1990 level)
+- **climate damage** updated each 5-year step from calibrated global totals (placeholder for a fuller climate model)
 
 The goal is to replace fixed human emissions assumptions with a structured simulation in which emissions emerge from political, social, industrial, energy, land-use, and international dynamics.
 
@@ -36,13 +36,13 @@ Each regional bloc contains **6 internal agents**:
 5. Land Use
 6. International Relations
 
-Each timestep is **10 years**.
+Each timestep is **5 years**.
 
 At each timestep, every region:
 1. reads its current state
-2. updates all internal agents
+2. updates all internal agents (one batched LLM call covers all regions for that step)
 3. computes emissions by sector
-4. contributes to global emissions
+4. contributes to global emissions (then globals are summed, blended with empirical MtCO2e, and exported as **ratios ÷ 1990**)
 
 ---
 
@@ -130,7 +130,7 @@ Each region has the following exact 6 agents.
 Represents overall regional policy direction.
 
 Responsibilities:
-- choose policy package for the decade
+- choose policy package for the 5-year step
 - balance public pressure, economic growth, lobbying, climate damages, and diplomatic pressure
 - influence all major emitting sectors
 
@@ -230,17 +230,120 @@ Outputs:
 
 ## Time Resolution
 
-The simulation uses **10-year timesteps**.
+The simulation uses **5-year timesteps**.
 
 Interpretation:
-- each timestep = one decade
-- state variables are updated once per decade
-- policy changes represent decade-level directional shifts
-- emissions outputs are decade-level emissions totals or average annualized emissions within that decade
+- each timestep = five calendar years
+- state variables are updated once per step
+- policy changes represent step-level directional shifts
+- emissions outputs are associated with the **calendar year at the start** of each step
 
 Important implementation note:
-- even though the timestep is 10 years, the state should still be smooth and continuous enough that transitions are not unrealistically abrupt
+- even though the timestep is 5 years, the state should still be smooth enough that transitions are not unrealistically abrupt
 - use bounded rates of change so variables do not jump too sharply in one timestep unless caused by a shock
+
+**Calendar mapping:** simulation step index `s` maps to calendar year **Y = 1990 + 5·s** (step start). Empirical trends are anchored to **1990** and **2021**; between those years growth is **linear in time**; after 2021 the **same linear slope continues** (extrapolation). Five-year steps sample the 1990–2021 trend more finely than 10-year steps.
+
+---
+
+## Empirical calibration and ratio outputs
+
+Global reporting is calibrated so sector **trajectories** align with real-world **global** greenhouse-gas inventory style data: **MtCO2e**, **1990 baselines**, and **multiplicative change from 1990 to 2021** per sector (from empirical charts; industrial processes, electricity/heat, transport, manufacturing/construction, agriculture, LULUCF, etc.). **Exported values** are **dimensionless ratios**: **blended Mt / 1990 baseline Mt** for each sector (same idea as **GROWTH_1990_TO_2021** over time: **1.0** = 1990 level, **1.88** ≈ +88% for electricity/heat at 2021).
+
+### 1990 global baselines (MtCO2e)
+
+These are the targets at **Y = 1990** (`BASE_MT_1990` in code):
+
+| Sector (model key) | MtCO2e (1990) | Notes |
+|--------------------|---------------|--------|
+| `energy_heat` | 8,653 | Electricity / heat (user-provided) |
+| `transport` | 4,734 | Transportation (user-provided) |
+| `buildings` | 4,000 | **Proxy:** manufacturing & construction level from charts (~4,000 Mt in 1990); the model’s “buildings” sector is aligned to that inventory line |
+| `industry` | 1,004 | Industrial processes (user-provided) |
+| `deforestation` | 2,027 | Land use, deforestation, LULUCF source side (user-provided) |
+| `agriculture` | 4,976 | Agriculture (user-provided) |
+
+### Growth factors (1990 → 2021)
+
+Each positive sector has a multiplicative factor **G** at **2021** relative to **1990** (`GROWTH_1990_TO_2021`). Linear interpolation in time:
+
+- Let **t = (Y − 1990) / (2021 − 1990)**.
+- Sector factor **F(Y) = 1 + (G − 1)·t** (for **Y** outside [1990, 2021], **t** is not clamped—the line extends).
+
+Empirical **G** values used:
+
+| Sector | G (2021 vs 1990) | Interpretation (approx.) |
+|--------|------------------|---------------------------|
+| `energy_heat` | 1.88 | +88% |
+| `transport` | 1.66 | +66% |
+| `buildings` | 1.60 | +60% (manufacturing/construction trend) |
+| `industry` | 3.25 | +225% |
+| `deforestation` | 0.66 | −34% (LULUCF / land-use trend) |
+| `agriculture` | 1.18 | +18% |
+
+**Empirical global Mt for a positive sector:**
+
+**E_emp(s, Y) = BASE_MT_1990[s] · F_s(Y)**.
+
+### Carbon removal (negative emissions)
+
+Inventory-style **removal** is not split the same way in the charts; the model uses a **gross removal magnitude** (MtCO2e) that increases from 1990 to 2021, then continues on the same line:
+
+- **REMOVAL_MAGNITUDE_MT_1990 = 300**
+- **REMOVAL_MAGNITUDE_MT_2021 = 450**
+
+**E_emp(carbon_removal, Y) = −magnitude(Y)** (negative = removal).
+
+Tunable in `emission_calibration.py` if better priors are available.
+
+### Blending raw simulation with empirical targets
+
+Let **E_raw** be the vector of **raw** global sums from the regions (same sector keys). Let **E_target** be **E_emp** at the step’s calendar year **Y**.
+
+1. **Positive sectors:** scale **E_raw** so the sum of positive components matches **sum(E_target positive)**. Call the scaled vector **E_scaled**.
+2. **Blend:** **E_blend = w · E_target + (1 − w) · E_scaled**, with **w = EMPIRICAL_BLEND** (default **0.88**). So **~88%** empirical trajectory, **~12%** scaled agent-driven shape.
+3. **carbon_removal:** same **w** between **E_target[carbon_removal]** and **E_raw[carbon_removal]**.
+
+If raw positive mass is zero, the blend falls back to **E_target** for positive sectors.
+
+### Ratio to 1990 baseline (exported metrics)
+
+Let **B(s)** be **BASE_MT_1990[s]** for positive sectors, and **B(carbon_removal) = BASELINE_CARBON_REMOVAL_MT_1990** (e.g. **−300** MtCO2e).
+
+- For each sector **s**: **output(s) = E_blend(s) / B(s)**.
+- **carbon_removal:** **output = E_blend(carbon_removal) / B(carbon_removal)** (both negative → ratio **> 0** when removal magnitude grows).
+
+So **1.0** means “same as 1990” for that sector; trends follow the empirical **GROWTH_1990_TO_2021** shape over calendar time (plus agent noise via **1 − w**).
+
+### JSON output shape (`run_simulation.py`)
+
+The top-level JSON file includes:
+
+- **`years_per_step`**: `5`
+- **`steps_run`**: number of periods simulated
+- **`global_emissions_by_step`**: list of objects, one per step, each with:
+  - **`step`**: integer index `s` (0, 1, 2, …)
+  - **`year`**: calendar start year **1990 + 5·s**
+  - **Sector keys** (`energy_heat`, `transport`, `buildings`, `industry`, `deforestation`, `agriculture`, `carbon_removal`): **ratio = blended Mt ÷ 1990 baseline** for that sector (see tables above)
+
+Older result files may use **`global_emissions_by_decade`** and **`decade`**; plotting code can accept both.
+
+### Code references
+
+- Constants **`BASE_MT_1990`**, **`GROWTH_1990_TO_2021`**, **`EMPIRICAL_BLEND`**, **`YEARS_PER_STEP`**, removal magnitudes: **`simulation/emission_calibration.py`**
+- **Blend** then **ratio**: `blend_raw_with_empirical` → `ratio_to_1990_baseline`
+- Main loop: **`WorldSimulation.advance()`** (increments **`step`** after each 5-year period)
+
+### What stays endogenous
+
+- **Per-region** emissions formulas and **LLM-produced** agent outputs still determine **raw** global sums and how they **deviate** within the **(1 − w)** term.
+- **Reported** globals and trends are **calibrated**; they are not a pure unconstrained sum of arbitrary units.
+
+---
+
+## LLM batch (implementation)
+
+In this repository, **Step 2** is implemented as **one** OpenAI chat completion per **5-year step** (`simulation/agents/batch.py`): the model returns JSON for all seven regions, each with **`citizens`**, **`industry`**, **`energy`**, **`land_use`**, **`international`**, **`governance`** objects (numeric fields clamped to **[0, 1]**). There is **not** a separate Python class per agent type; agent behavior is defined via prompt fragments (`simulation/agents/*.py`) composed into a single system prompt.
 
 ---
 
@@ -248,7 +351,7 @@ Important implementation note:
 
 The simulation must follow this exact loop.
 
-# For each decade:
+# For each 5-year step:
 
 ## Step 1: each region reads current state
 
@@ -256,7 +359,7 @@ Each region reads:
 - economy
 - population
 - quality of life
-- climate damages from previous year
+- climate damages from the previous step
 - trade/diplomatic influence from other regions
 
 This state is the shared context for all 6 internal agents.
@@ -278,6 +381,8 @@ Important:
 - governance acts **after** reading the other agents’ updated signals
 - governance should use the outputs of the other 5 agents as inputs into policy choice
 
+**Implementation:** one batched LLM call produces all six output bundles for all regions for that step (`run_batch_agents`). Conceptual order above is reflected in the prompt design (governance chosen in light of the other five).
+
 ---
 
 ## Step 3: compute emissions by sector
@@ -292,85 +397,82 @@ For each region, compute emissions for:
 - agriculture
 - carbon removal
 
-These emissions must be derived from:
+These **regional** sector totals are derived from:
+
 - regional state
-- current agent outputs
-- previous timestep conditions
+- current agent outputs (from the batch LLM response)
 - policy package chosen by governance
 
-Do **not** hardcode emissions paths externally.
+Implementation (`simulation/emissions.py`): interpretable formulas map state, policy, and agent outputs into an `EmissionsProfile` per region. Values are in **arbitrary model units** before global calibration. Regional scaling uses population and GDP proxies (`Region._emissions_scale`).
 
-Emissions must be endogenous to agent behavior.
+Emissions at this stage are **endogenous** to agent outputs and state.
 
 ---
 
-## Step 4: aggregate to global emissions
+## Step 4: aggregate to global emissions and calibrate
 
-Aggregate all regional emissions into global emissions.
+### 4a. Raw global aggregation
 
-Formula:
+Sum over all regions:
 
-E_global = sum(E_agents)
+**E_raw_global[sector] = Σ_region region.emissions[sector]**
 
-And calculate and output E_global_by_sector = {
-    "energy_heat": sum(region.emissions["energy_heat"] for region in regions),
-    "transport": sum(region.emissions["transport"] for region in regions),
-    "buildings": sum(region.emissions["buildings"] for region in regions),
-    "industry": sum(region.emissions["industry"] for region in regions),
-    "deforestation": sum(region.emissions["deforestation"] for region in regions),
-    "agriculture": sum(region.emissions["agriculture"] for region in regions),
-    "carbon_removal": sum(region.emissions["carbon_removal"] for region in regions),
-}
+Same sector keys as above (`simulation/models.py`: `EMISSION_SECTORS`). In code, the aggregated dict also carries **`step`** and **`year`** for bookkeeping before blending.
+
+### 4b. Empirical calibration (trend-aligned global totals)
+
+Raw globals are **blended** with **empirical MtCO2e-style targets** so that **reported global trajectories** match observed 1990–2021 sector trends (see **§ Empirical calibration and ratio outputs**). Constants and formulas live in `simulation/emission_calibration.py`.
+
+This does **not** replace regional physics: agents still drive **raw** regional emissions; the blend sets how strongly **global** reporting follows historical curves.
+
+### 4c. Ratio output (e.g. `results.json`)
+
+The simulation **records** and returns **ratios to 1990** for each sector:
+
+- **Positive sectors:** **blended Mt ÷ BASE_MT_1990[sector]** (dimensionless; **1.0** = 1990 level).
+- **carbon_removal:** **blended Mt ÷ BASELINE_CARBON_REMOVAL_MT_1990** (typically negative ÷ negative → positive ratio when sinks strengthen).
+
+### 4d. Climate damage update
+
+`WorldSimulation._evolve_state` uses the **blended MtCO2e-style global dict** (after blend, before ratio conversion) to update each region’s `climate_damage`. Per-step damage is scaled by **(5/10)** relative to the old 10-year step so the **calendar** rate of change is comparable.
 
 # Implementation Requirements
 
-## 1. Use a modular object-oriented design
+## 1. Modular design (this repository)
 
-Recommended top-level classes:
+Top-level types in code:
 
-* `WorldSimulation`
-* `Region`
-* `GovernanceAgent`
-* `CitizensAgent`
-* `IndustryAgent`
-* `EnergyAgent`
-* `LandUseAgent`
-* `InternationalRelationsAgent`
+* `WorldSimulation` — 5-year step loop via **`advance()`**, raw global aggregation, blend, **ratio-to-1990** export, history list, climate damage
+* `Region` — state, policy package, `EmissionsProfile`, `step_from_outputs`
 
-Optional support classes:
+Supporting structures (`simulation/models.py`):
 
-* `RegionState`
-* `PolicyPackage`
-* `EmissionsProfile`
-* `ClimateDamageProfile`
+* `PolicyPackage` (governance outputs)
+* `EmissionsProfile` (sector emissions)
+* Typed region state schema
+
+Agent outputs are **not** separate Python classes; they are **dicts** keyed by agent name, filled by the batch LLM. Prompt modules under `simulation/agents/` define each agent’s **JSON keys** and **prompt fragments**.
 
 ---
 
 ## 2. Region object structure
 
-Each `Region` should contain:
+Each `Region` contains:
 
-* static regional profile
-* dynamic state variables
-* all 6 internal agents
-* emissions outputs by sector
-* policy package for current timestep
+* static regional profile (`name`, `profile`)
+* dynamic state variables (`state`)
+* emissions outputs by sector (`emissions: EmissionsProfile`)
+* policy package for current timestep (`policy_package: PolicyPackage`)
 
-Recommended structure:
+Agent outputs are **not** stored as sub-objects; they are passed into `step_from_outputs` only for the computation step.
 
 ```python
 class Region:
     name: str
     profile: dict
     state: dict
-    governance: GovernanceAgent
-    citizens: CitizensAgent
-    industry: IndustryAgent
-    energy: EnergyAgent
-    land_use: LandUseAgent
-    international: InternationalRelationsAgent
-    emissions: dict
-    policy_package: dict
+    emissions: EmissionsProfile
+    policy_package: PolicyPackage | None
 ```
 
 ---
@@ -396,7 +498,7 @@ Each region should at minimum track:
 * building demand level
 * land-use pressure
 * agriculture intensity
-* climate damages from previous timestep
+* climate damages from the previous 5-year step
 * trade/diplomatic influence score
 
 You may add more variables if useful, but keep the model interpretable.
@@ -434,7 +536,7 @@ region.state = {
 
 ## 5. Emissions logic expectations
 
-Use interpretable equations, not black-box predictions.
+Use interpretable equations, not black-box predictions. Per-region values are in **arbitrary units** until the **global** blend; **reported** globals are **MtCO2e-aligned** after calibration and **ratio-normalized** (÷ 1990 baseline) for export.
 
 ### Energy & Heat
 
@@ -610,11 +712,22 @@ Set lower values for:
 
 1. Keep the model interpretable.
 2. Use structured state variables and equations.
-3. Do not make emissions exogenous.
+3. **Regional** emissions remain **endogenous** (state + agent outputs + formulas). **Globally reported** outputs are **calibrated** to empirical MtCO2e trends, then **divided by 1990 baselines** for export (see § Empirical calibration and ratio outputs); tune `EMPIRICAL_BLEND` toward `0` for a more purely model-driven global path.
 4. Do not collapse all behavior into one region-level scalar.
 5. Preserve the exact 6 agents per region.
 6. Preserve the exact 7 regional blocs.
-7. Preserve the exact simulation loop and order of updates.
-8. Use decade timesteps.
-9. Make it easy to later attach a climate damage model.
+7. Preserve the exact simulation loop and order of updates (conceptually; batch LLM implements it in one call).
+8. Use **5-year** timesteps.
+9. Climate damage is updated each step from **blended** global emissions (`_evolve_state`); a fuller climate model can replace or extend this.
 10. Prefer clean, extensible Python over premature optimization.
+
+### Key files
+
+| File | Role |
+|------|------|
+| `simulation/emissions.py` | Per-region sector formulas |
+| `simulation/emission_calibration.py` | `BASE_MT_1990`, `GROWTH_1990_TO_2021`, `YEARS_PER_STEP`, blend, `ratio_to_1990_baseline` |
+| `simulation/world_simulation.py` | `WorldSimulation.advance()` — loop, raw sum, blend, ratios, history, `_evolve_state` |
+| `simulation/agents/batch.py` | One LLM call per 5-year step, JSON for all regions |
+| `run_simulation.py` | CLI: `--steps N` (default 7 ≈ 1990–2020), `--output` JSON |
+| `plot_results.py` | Plots ratios vs `year` or legacy `decade`; writes `emissions_by_period.png` |

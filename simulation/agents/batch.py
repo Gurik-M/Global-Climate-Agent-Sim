@@ -1,5 +1,5 @@
 """
-Single LLM call per decade: composes all agents (defined in separate modules) into one prompt.
+Single LLM call per 5-year simulation step: composes all agents into one prompt.
 """
 
 import json
@@ -29,7 +29,7 @@ def _extract_json(text: str) -> dict:
 def _build_system_prompt() -> str:
     """Build system prompt from each agent's PROMPT_FRAGMENT."""
     agent_lines = "\n".join(a.PROMPT_FRAGMENT for a in AGENTS)
-    return f"""You are simulating one decade of a global socio-climate model.
+    return f"""You are simulating one 5-year period of a global socio-climate model.
 
 There are 7 regional blocs. For each region, 6 internal "agents" produce outputs (all values 0–1):
 
@@ -74,7 +74,7 @@ def run_batch_agents(region_states: list[tuple[str, dict]], model: str = "gpt-4o
     for name, state in region_states:
         user_parts.append(f"## {name}\n{json.dumps(state, indent=0)}")
     user_prompt = (
-        "Current decade state for each region (all values roughly 0–1 where relevant).\n\n"
+        "Current regional state for this 5-year step (all values roughly 0–1 where relevant).\n\n"
         + "\n\n".join(user_parts)
         + "\n\nOutput the full JSON object for all 7 regions with keys: North America, Europe, Africa, South America, Southeast Asia, Asia Major, Australia. Each region: citizens, industry, energy, land_use, international, governance (each with the numeric keys listed in the system prompt)."
     )

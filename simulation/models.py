@@ -125,7 +125,7 @@ EMISSION_SECTORS = [
 
 @dataclass
 class EmissionsProfile:
-    """Sector-level emissions (e.g. GtCO2e per decade or annualized)."""
+    """Sector-level emissions (arbitrary units before global calibration)."""
     energy_heat: float = 0.0
     transport: float = 0.0
     buildings: float = 0.0

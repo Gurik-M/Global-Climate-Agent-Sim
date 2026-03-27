@@ -1,6 +1,6 @@
 """
 Region: one of 7 regional blocs with state, emissions, and policy.
-Agent outputs are applied via step_from_outputs (from one batch LLM call per decade).
+Agent outputs are applied via step_from_outputs (from one batch LLM call per 5-year step).
 """
 
 from simulation.models import PolicyPackage, EmissionsProfile

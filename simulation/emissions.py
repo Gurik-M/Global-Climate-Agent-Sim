@@ -2,7 +2,7 @@
 Compute sector-level emissions from regional state and agent outputs.
 
 All formulas are interpretable and endogenous (approach.md §5).
-Emissions are in arbitrary units per decade; scale can be calibrated later.
+Emissions are in arbitrary units before global calibration; global output uses MtCO2e-style blend then ratio to 1990.
 """
 
 from simulation.models import EmissionsProfile, PolicyPackage, EMISSION_SECTORS

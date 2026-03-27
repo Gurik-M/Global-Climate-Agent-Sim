@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Run the global socio-climate simulation for a number of decades.
-Usage: python run_simulation.py [--decades N]
+Run the global socio-climate simulation for a number of 5-year steps.
+Usage: python run_simulation.py [--steps N]
 """
 
 import argparse
@@ -11,27 +11,36 @@ from simulation.world_simulation import WorldSimulation
 
 def main():
     parser = argparse.ArgumentParser(description="Run multi-agent climate simulation")
-    parser.add_argument("--decades", type=int, default=3, help="Number of 10-year steps to run")
+    parser.add_argument(
+        "--steps",
+        type=int,
+        default=7,
+        help="Number of 5-year periods to run (default: 7, ~1990–2020 on the calendar grid)",
+    )
     parser.add_argument("--output", type=str, default=None, help="Optional JSON file to write results")
     args = parser.parse_args()
 
     world = WorldSimulation()
-    print(f"Running {args.decades} decade(s), {len(world.regions)} regions (1 LLM call per decade).\n")
+    print(
+        f"Running {args.steps} step(s) of 5 years each, {len(world.regions)} regions "
+        "(1 LLM call per step).\n"
+    )
 
-    for _ in range(args.decades):
-        global_emissions = world.step_decade()
-        decade = global_emissions.get("decade", 0)
-        print(f"--- Decade {decade} ---")
-        for sector, value in global_emissions.items():
-            if sector != "decade":
-                print(f"  {sector}: {value:.4f}")
-        net = sum(v for k, v in global_emissions.items() if k != "decade" and isinstance(v, (int, float)))
-        print(f"  (net total: {net:.4f})\n")
+    for _ in range(args.steps):
+        global_emissions = world.advance()
+        step = global_emissions.get("step", 0)
+        year = global_emissions.get("year", 0)
+        print(f"--- Step {step} (year {year:.0f}) ---")
+        for key, value in global_emissions.items():
+            if key not in ("step", "year"):
+                print(f"  {key}: {value:.4f}")
+        print()
 
     if args.output:
         out = {
-            "decades_run": args.decades,
-            "global_emissions_by_decade": world.global_emissions_history,
+            "years_per_step": 5,
+            "steps_run": args.steps,
+            "global_emissions_by_step": world.global_emissions_history,
             "regions": [r.name for r in world.regions],
         }
         with open(args.output, "w") as f:

@@ -1,55 +1,116 @@
 {
-  "decades_run": 5,
-  "global_emissions_by_decade": [
+  "years_per_step": 5,
+  "steps_run": 10,
+  "global_emissions_by_step": [
     {
-      "energy_heat": 0.07848886968404843,
-      "transport": 0.1338307482824792,
-      "buildings": 0.11924201269485518,
-      "industry": 0.12137650256115545,
-      "deforestation": 0.06501647541475651,
-      "agriculture": 0.09228989829867434,
-      "carbon_removal": -0.1889839126219443,
-      "decade": 0
+      "energy_heat": 0.9271634220104092,
+      "transport": 1.0219572512600796,
+      "buildings": 1.0291835067402852,
+      "industry": 1.4734347005727975,
+      "deforestation": 1.033113674143114,
+      "agriculture": 0.9732969047536953,
+      "carbon_removal": 0.8800744448666938,
+      "step": 0,
+      "year": 1990.0
     },
     {
-      "energy_heat": 0.08595830522808409,
-      "transport": 0.13605347959939845,
-      "buildings": 0.12446004893446067,
-      "industry": 0.12806679534869975,
-      "deforestation": 0.05849771362342721,
-      "agriculture": 0.09115555867311477,
-      "carbon_removal": -0.20050208450175033,
-      "decade": 1
+      "energy_heat": 1.0571348244312575,
+      "transport": 1.1265410926223078,
+      "buildings": 1.1298444639883505,
+      "industry": 1.834621794347561,
+      "deforestation": 1.0050096760450613,
+      "agriculture": 1.011242327740377,
+      "carbon_removal": 0.9510421868021778,
+      "step": 1,
+      "year": 1995.0
     },
     {
-      "energy_heat": 0.07893937156459627,
-      "transport": 0.13094948165236145,
-      "buildings": 0.1192449013285801,
-      "industry": 0.12191064729622907,
-      "deforestation": 0.06132192768086457,
-      "agriculture": 0.09228989829867434,
-      "carbon_removal": -0.19763033861425777,
-      "decade": 2
+      "energy_heat": 1.184268959698604,
+      "transport": 1.23187074433935,
+      "buildings": 1.2264996427038555,
+      "industry": 2.323757930758432,
+      "deforestation": 0.9618391235894459,
+      "agriculture": 1.0369535038351625,
+      "carbon_removal": 1.0220156847047683,
+      "step": 2,
+      "year": 2000.0
     },
     {
-      "energy_heat": 0.07970144771633829,
-      "transport": 0.1365303564890739,
-      "buildings": 0.12262779562356732,
-      "industry": 0.14210576267527983,
-      "deforestation": 0.0685302724258872,
-      "agriculture": 0.09115555867311477,
-      "carbon_removal": -0.16915368135973752,
-      "decade": 3
+      "energy_heat": 1.3121165162632247,
+      "transport": 1.3435273942331727,
+      "buildings": 1.3274761955269803,
+      "industry": 2.635960566214818,
+      "deforestation": 0.9420507760320863,
+      "agriculture": 1.078105750135911,
+      "carbon_removal": 1.0929822779418974,
+      "step": 3,
+      "year": 2005.0
     },
     {
-      "energy_heat": 0.07924445000773403,
-      "transport": 0.13637464206349625,
-      "buildings": 0.12169035613749898,
-      "industry": 0.12191064729622907,
-      "deforestation": 0.07210317589184097,
-      "agriculture": 0.09115555867311477,
-      "carbon_removal": -0.19763033861425777,
-      "decade": 4
+      "energy_heat": 1.441643725158177,
+      "transport": 1.4482861251656731,
+      "buildings": 1.4260343249512621,
+      "industry": 2.9950077579499275,
+      "deforestation": 0.924524276686103,
+      "agriculture": 1.1144705586383492,
+      "carbon_removal": 1.1639454126086293,
+      "step": 4,
+      "year": 2010.0
+    },
+    {
+      "energy_heat": 1.5715980215738174,
+      "transport": 1.5608171795114503,
+      "buildings": 1.5318793602702825,
+      "industry": 3.3529536890434346,
+      "deforestation": 0.8768584326096298,
+      "agriculture": 1.149340336296526,
+      "carbon_removal": 1.2349189105112202,
+      "step": 5,
+      "year": 2015.0
+    },
+    {
+      "energy_heat": 1.701722838741411,
+      "transport": 1.6669752088780987,
+      "buildings": 1.63065489255059,
+      "industry": 3.7595812218376654,
+      "deforestation": 0.8404003124269218,
+      "agriculture": 1.1812716115228714,
+      "carbon_removal": 1.305879869052554,
+      "step": 6,
+      "year": 2020.0
+    },
+    {
+      "energy_heat": 1.8309617756949461,
+      "transport": 1.7713926594914973,
+      "buildings": 1.7262101162904133,
+      "industry": 4.187041933458626,
+      "deforestation": 0.8138720044942837,
+      "agriculture": 1.2107395456115844,
+      "carbon_removal": 1.376854394382188,
+      "step": 7,
+      "year": 2025.0
+    },
+    {
+      "energy_heat": 1.9637011447918802,
+      "transport": 1.8812374858363894,
+      "buildings": 1.8296294914044986,
+      "industry": 4.504125527129362,
+      "deforestation": 0.7744110205128503,
+      "agriculture": 1.2501741435319216,
+      "carbon_removal": 1.4478179637219772,
+      "step": 8,
+      "year": 2030.0
+    },
+    {
+      "energy_heat": 2.093602892381751,
+      "transport": 1.9912045833362386,
+      "buildings": 1.9346263992091581,
+      "industry": 4.86895299848585,
+      "deforestation": 0.7340670535839048,
+      "agriculture": 1.283885254661436,
+      "carbon_removal": 1.5187852709844036,
+      "step": 9,
+      "year": 2035.0
     }
   ],
   "regions": [
