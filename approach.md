@@ -306,6 +306,18 @@ Let **E_raw** be the vector of **raw** global sums from the regions (same sector
 
 If raw positive mass is zero, the blend falls back to **E_target** for positive sectors.
 
+### Scenario mode (`--scenario` CLI flag)
+
+The CLI can pass **`--scenario climate-protection`** or **`--scenario growth-only`**. When either is set:
+
+1. **Blend weight:** **w** is set to **`SCENARIO_EMPIRICAL_BLEND = 0.4`** instead of **`EMPIRICAL_BLEND = 0.88`**. The same formula **E_blend = w · E_target + (1 − w) · E_scaled** applies; the **(1 − w)** term is **60%**, so the **scaled raw** global vector from the simulation has a much larger share of the blended result than in the default run. Reported global ratios still use **E_blend ÷ 1990 baseline** per sector, but the path is **less tightly tied** to the empirical **MtCO2e** trajectory and **more sensitive** to agent outputs and regional formulas.
+
+2. **LLM steering:** `simulation/agents/batch.py` appends a short **scenario paragraph** to the system prompt so the model biases all regions’ **0–1** agent fields in a consistent direction:
+   - **`climate-protection`:** favor stronger mitigation and adaptation signals (e.g. higher climate policy ambition, lower fossil lock-in, conservation and electrification where consistent with state).
+   - **`growth-only`:** favor economic and industrial expansion (e.g. higher demand and industrial intensity where plausible; climate policy secondary to development).
+
+When **`--scenario` is omitted**, behavior matches the **default**: **w = 0.88** and **no** scenario paragraph. Regional emissions formulas and the batch JSON schema are unchanged; only **w** and the **optional** prompt suffix differ.
+
 ### Ratio to 1990 baseline (exported metrics)
 
 Let **B(s)** be **BASE_MT_1990[s]** for positive sectors, and **B(carbon_removal) = BASELINE_CARBON_REMOVAL_MT_1990** (e.g. **−300** MtCO2e).
@@ -321,6 +333,8 @@ The top-level JSON file includes:
 
 - **`years_per_step`**: `5`
 - **`steps_run`**: number of periods simulated
+- **`scenario`**: `null`, **`"climate-protection"`**, or **`"growth-only"`** — mirrors the CLI `--scenario` flag (omitted or `null` when the default run was used)
+- **`empirical_blend`**: **`0.88`** (default) or **`0.4`** when `--scenario` was passed — the **w** used in blending for that run
 - **`global_emissions_by_step`**: list of objects, one per step, each with:
   - **`step`**: integer index `s` (0, 1, 2, …)
   - **`year`**: calendar start year **1990 + 5·s**
@@ -330,9 +344,9 @@ Older result files may use **`global_emissions_by_decade`** and **`decade`**; pl
 
 ### Code references
 
-- Constants **`BASE_MT_1990`**, **`GROWTH_1990_TO_2021`**, **`EMPIRICAL_BLEND`**, **`YEARS_PER_STEP`**, removal magnitudes: **`simulation/emission_calibration.py`**
-- **Blend** then **ratio**: `blend_raw_with_empirical` → `ratio_to_1990_baseline`
-- Main loop: **`WorldSimulation.advance()`** (increments **`step`** after each 5-year period)
+- Constants **`BASE_MT_1990`**, **`GROWTH_1990_TO_2021`**, **`EMPIRICAL_BLEND`**, **`SCENARIO_EMPIRICAL_BLEND`**, **`YEARS_PER_STEP`**, removal magnitudes: **`simulation/emission_calibration.py`**
+- **Blend** then **ratio**: `blend_raw_with_empirical` (optional **`blend_weight`**) → `ratio_to_1990_baseline`
+- Main loop: **`WorldSimulation.advance()`** (increments **`step`** after each 5-year period); **`WorldSimulation`** accepts optional **`empirical_blend`** and **`scenario`** for scenario runs
 
 ### What stays endogenous
 
@@ -343,7 +357,7 @@ Older result files may use **`global_emissions_by_decade`** and **`decade`**; pl
 
 ## LLM batch (implementation)
 
-In this repository, **Step 2** is implemented as **one** OpenAI chat completion per **5-year step** (`simulation/agents/batch.py`): the model returns JSON for all seven regions, each with **`citizens`**, **`industry`**, **`energy`**, **`land_use`**, **`international`**, **`governance`** objects (numeric fields clamped to **[0, 1]**). There is **not** a separate Python class per agent type; agent behavior is defined via prompt fragments (`simulation/agents/*.py`) composed into a single system prompt.
+In this repository, **Step 2** is implemented as **one** OpenAI chat completion per **5-year step** (`simulation/agents/batch.py`): the model returns JSON for all seven regions, each with **`citizens`**, **`industry`**, **`energy`**, **`land_use`**, **`international`**, **`governance`** objects (numeric fields clamped to **[0, 1]**). There is **not** a separate Python class per agent type; agent behavior is defined via prompt fragments (`simulation/agents/*.py`) composed into a single system prompt. When **`run_simulation.py`** is invoked with **`--scenario`**, the **same** schema and clamping apply; **`batch.py`** only appends a **scenario instruction block** to the system prompt (see § **Scenario mode** under empirical calibration).
 
 ---
 
@@ -712,7 +726,7 @@ Set lower values for:
 
 1. Keep the model interpretable.
 2. Use structured state variables and equations.
-3. **Regional** emissions remain **endogenous** (state + agent outputs + formulas). **Globally reported** outputs are **calibrated** to empirical MtCO2e trends, then **divided by 1990 baselines** for export (see § Empirical calibration and ratio outputs); tune `EMPIRICAL_BLEND` toward `0` for a more purely model-driven global path.
+3. **Regional** emissions remain **endogenous** (state + agent outputs + formulas). **Globally reported** outputs are **calibrated** to empirical MtCO2e trends, then **divided by 1990 baselines** for export (see § Empirical calibration and ratio outputs); tune **`EMPIRICAL_BLEND`** toward `0` for a more purely model-driven global path, or use **`--scenario`** so **`w = SCENARIO_EMPIRICAL_BLEND`** (0.4) plus optional LLM steering.
 4. Do not collapse all behavior into one region-level scalar.
 5. Preserve the exact 6 agents per region.
 6. Preserve the exact 7 regional blocs.
@@ -726,8 +740,8 @@ Set lower values for:
 | File | Role |
 |------|------|
 | `simulation/emissions.py` | Per-region sector formulas |
-| `simulation/emission_calibration.py` | `BASE_MT_1990`, `GROWTH_1990_TO_2021`, `YEARS_PER_STEP`, blend, `ratio_to_1990_baseline` |
-| `simulation/world_simulation.py` | `WorldSimulation.advance()` — loop, raw sum, blend, ratios, history, `_evolve_state` |
-| `simulation/agents/batch.py` | One LLM call per 5-year step, JSON for all regions |
-| `run_simulation.py` | CLI: `--steps N` (default 7 ≈ 1990–2020), `--output` JSON |
+| `simulation/emission_calibration.py` | `BASE_MT_1990`, `GROWTH_1990_TO_2021`, `EMPIRICAL_BLEND`, `SCENARIO_EMPIRICAL_BLEND`, `YEARS_PER_STEP`, blend, `ratio_to_1990_baseline` |
+| `simulation/world_simulation.py` | `WorldSimulation.advance()` — loop, raw sum, blend, ratios, history, `_evolve_state`; optional scenario kwargs |
+| `simulation/agents/batch.py` | One LLM call per 5-year step, JSON for all regions; optional `scenario` prompt suffix |
+| `run_simulation.py` | CLI: `--steps N` (default 7 ≈ 1990–2020), `--output` JSON, `--scenario` |
 | `plot_results.py` | Plots ratios vs `year` or legacy `decade`; writes `emissions_by_period.png` |

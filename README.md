@@ -28,6 +28,18 @@ Options:
 
 - `--steps N`  Number of **5-year** periods (default: 7, roughly **1990–2020** on the calendar grid).
 - `--output results.json`  Write global emissions ratios and metadata to a JSON file.
+- `--scenario {climate-protection|growth-only}`  Optional **counterfactual run** (see below). Omit this flag for the default calibration.
+
+**Scenario mode (`--scenario`):** use this when you want stronger **agent-driven** divergence from the historical global trajectory and a clear narrative steer for the batch LLM. Passing `--scenario` sets the empirical blend weight to **0.4** (instead of the default **0.88**), so **60%** of the blended global mass comes from the **scaled raw** simulation and **40%** from the empirical **MtCO2e** targets—more room for regional dynamics to show through in reported ratios. The same flag also appends scenario instructions to the system prompt so the model biases agent outputs toward **mitigation and resilience** (`climate-protection`) or **growth and industrial expansion** (`growth-only`). Default runs (no flag) are unchanged: **0.88** blend and no extra prompt text.
+
+Examples:
+
+```bash
+python run_simulation.py --steps 7 --scenario climate-protection --output results.json
+python run_simulation.py --steps 7 --scenario growth-only --output results.json
+```
+
+When you use `--output`, the JSON includes `scenario` (or `null` if omitted) and `empirical_blend` (either **0.4** or **0.88**) so runs are self-describing.
 
 One LLM call is made per step (all 7 regions and 6 agents per region in a single prompt).
 
@@ -56,6 +68,7 @@ Requires `matplotlib` (included in `requirements.txt`).
 - **7 regions:** North America, Europe, Africa, South America, Southeast Asia, Asia Major, Australia.
 - **6 agents per region:** Citizens → Industry → Energy → Land Use → International Relations → Governance (order fixed).
 - **5-year timesteps.** Per step: each region reads state, updates agents, computes sector emissions; then global emissions are summed, blended with empirical Mt, and divided by 1990 baselines.
+- **Optional `--scenario`:** lowers the empirical blend weight (0.88 → 0.4) and adds a narrative steer to the batch LLM; see **§ Scenario mode** in `approach.md`.
 - **Emissions** are endogenous (from state and agent outputs). Sectors: energy_heat, transport, buildings, industry, deforestation, agriculture, carbon_removal.
 
 See `approach.md` for full specification.

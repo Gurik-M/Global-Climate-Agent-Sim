@@ -1,10 +1,12 @@
 """
-Single LLM call per 5-year simulation step: composes all agents into one prompt.
+Single LLM call per simulation timestep: composes all agents into one prompt.
 """
 
 import json
+import math
 from simulation.agents.base import call_llm
 from simulation.agents import AGENTS
+from simulation.emission_calibration import YEARS_PER_STEP
 from simulation.initial_state import REGIONAL_BLOCS
 
 
@@ -26,10 +28,27 @@ def _extract_json(text: str) -> dict:
     return {}
 
 
-def _build_system_prompt() -> str:
+def _scenario_instruction(scenario: str | None) -> str:
+    if scenario == "climate-protection":
+        return (
+            "\n\nScenario mode — climate-protection: steer each region toward stronger mitigation and "
+            "adaptation (higher climate policy ambition, lower fossil lock-in, more conservation and "
+            "electrification where consistent with that region's state). Governance should reflect "
+            "priority on emissions cuts and resilience over short-term growth alone."
+        )
+    if scenario == "growth-only":
+        return (
+            "\n\nScenario mode — growth-only: steer each region toward economic and industrial expansion "
+            "(higher industrial intensity and energy demand where plausible; climate policy is secondary "
+            "to competitiveness and development). Governance may be weaker on strict regulation."
+        )
+    return ""
+
+
+def _build_system_prompt(scenario: str | None = None) -> str:
     """Build system prompt from each agent's PROMPT_FRAGMENT."""
     agent_lines = "\n".join(a.PROMPT_FRAGMENT for a in AGENTS)
-    return f"""You are simulating one 5-year period of a global socio-climate model.
+    return f"""You are simulating one {YEARS_PER_STEP:g}-year period of a global socio-climate model.
 
 There are 7 regional blocs. For each region, 6 internal "agents" produce outputs (all values 0–1):
 
@@ -47,7 +66,18 @@ Example shape (use exact region names):
 }}
 
 Use only the region names: North America, Europe, Africa, South America, Southeast Asia, Asia Major, Australia.
-Output only valid JSON, no other text."""
+Output only valid JSON, no other text.{_scenario_instruction(scenario)}"""
+
+
+def _json_safe_for_prompt(obj: object) -> object:
+    """Finite numbers only; strict JSON for embedded regional state (OpenAI SDK uses allow_nan=False)."""
+    if isinstance(obj, float):
+        return 0.0 if not math.isfinite(obj) else float(obj)
+    if isinstance(obj, dict):
+        return {str(k): _json_safe_for_prompt(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_json_safe_for_prompt(x) for x in obj]
+    return obj
 
 
 def _normalize_agent(d: dict, keys: list[str]) -> dict:
@@ -64,7 +94,11 @@ def _normalize_agent(d: dict, keys: list[str]) -> dict:
     return out
 
 
-def run_batch_agents(region_states: list[tuple[str, dict]], model: str = "gpt-4o-mini") -> dict[str, dict]:
+def run_batch_agents(
+    region_states: list[tuple[str, dict]],
+    model: str = "gpt-4o-mini",
+    scenario: str | None = None,
+) -> dict[str, dict]:
     """
     One LLM call: given (region_name, state) for each region, return for each region
     a dict with keys: citizens, industry, energy, land_use, international, governance
@@ -72,14 +106,17 @@ def run_batch_agents(region_states: list[tuple[str, dict]], model: str = "gpt-4o
     """
     user_parts = []
     for name, state in region_states:
-        user_parts.append(f"## {name}\n{json.dumps(state, indent=0)}")
+        safe = _json_safe_for_prompt(dict(state))
+        user_parts.append(
+            f"## {name}\n{json.dumps(safe, ensure_ascii=True, separators=(',', ':'), allow_nan=False, sort_keys=True)}"
+        )
     user_prompt = (
-        "Current regional state for this 5-year step (all values roughly 0–1 where relevant).\n\n"
+        f"Current regional state for this {YEARS_PER_STEP:g}-year step (all values roughly 0–1 where relevant).\n\n"
         + "\n\n".join(user_parts)
         + "\n\nOutput the full JSON object for all 7 regions with keys: North America, Europe, Africa, South America, Southeast Asia, Asia Major, Australia. Each region: citizens, industry, energy, land_use, international, governance (each with the numeric keys listed in the system prompt)."
     )
 
-    raw = call_llm(_build_system_prompt(), user_prompt, model=model)
+    raw = call_llm(_build_system_prompt(scenario), user_prompt, model=model)
     data = _extract_json(raw)
     if not isinstance(data, dict):
         data = {}

@@ -48,11 +48,25 @@ BASELINE_CARBON_REMOVAL_MT_1990 = -REMOVAL_MAGNITUDE_MT_1990
 YEAR_START = 1990.0
 YEAR_END_TREND = 2021.0
 
-# Simulation advances in 5-year periods (clearer sampling between 1990 and 2021).
-YEARS_PER_STEP = 5
+# Calendar end year for a full run (last step's ``year`` is this value).
+YEAR_END_SIMULATION = 2100.0
+
+# Simulation timestep length in years (calendar mapping and climate-damage scaling).
+YEARS_PER_STEP = 2
+
+
+def default_simulation_step_count() -> int:
+    """
+    Number of steps from YEAR_START through YEAR_END_SIMULATION inclusive
+    (each step's ``year`` is the period start, e.g. 1990, 1992, …, 2100).
+    """
+    span = YEAR_END_SIMULATION - YEAR_START
+    return int(span / float(YEARS_PER_STEP)) + 1
 
 # Weight of empirical target vs scaled raw model (preserves agent-driven spread).
 EMPIRICAL_BLEND = 0.88
+# When ``--scenario`` is used (see ``run_simulation.py``): more weight on raw model, less on empirical track.
+SCENARIO_EMPIRICAL_BLEND = 0.4
 
 
 def year_for_step(step_index: int, start_year: float = YEAR_START) -> float:
@@ -94,13 +108,19 @@ def empirical_global_mt(step_index: int) -> dict[str, float]:
     return out
 
 
-def blend_raw_with_empirical(raw: dict[str, float], step_index: int) -> dict[str, float]:
+def blend_raw_with_empirical(
+    raw: dict[str, float],
+    step_index: int,
+    blend_weight: float | None = None,
+) -> dict[str, float]:
     """
     Blend empirical Mt targets with region-aggregated raw emissions (same keys as EMISSION_SECTORS).
     Raw values are scaled to comparable mass before blending.
+
+    ``blend_weight`` defaults to :data:`EMPIRICAL_BLEND` when ``None``.
     """
     target = empirical_global_mt(step_index)
-    w = EMPIRICAL_BLEND
+    w = EMPIRICAL_BLEND if blend_weight is None else blend_weight
     pos_keys = [k for k in EMISSION_SECTORS if k != "carbon_removal"]
 
     sum_raw_pos = sum(max(0.0, float(raw.get(k, 0.0))) for k in pos_keys)
