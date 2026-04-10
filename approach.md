@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-Build a **global coupled socio-climate simulation** with:
+I want to use AI agents to model and simulate human carbon emissions, and use this simnulation to test out how different policies, behaviours, etc. can influence global carbon emissions across regions and industries. Build a **global coupled socio-climate multi-agent AI simulation** with:
 
 - **7 regional blocs**
 - **6 internal agents per bloc**
