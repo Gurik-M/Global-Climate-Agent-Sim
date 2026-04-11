@@ -178,7 +178,7 @@ total_emissions = np.array([
 emissions_normalized = total_emissions / total_emissions[0]
 
 # =======================================================
-# Plotting
+# Plotting (AI-assisted coding to generate the code for the plots)
 
 # Get IPCC data
 ipcc_ppm        = pd.read_csv('ipcc_concentrations.csv', header=0)
