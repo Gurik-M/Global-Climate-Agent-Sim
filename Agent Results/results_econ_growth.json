@@ -1,0 +1,149 @@
+{
+  "years_per_step": 5,
+  "steps_run": 12,
+  "scenario": "growth-only",
+  "empirical_blend": 0.4,
+  "global_emissions_by_step": [
+    {
+      "energy_heat": 1.0,
+      "transport": 1.0,
+      "buildings": 1.0,
+      "industry": 1.0,
+      "deforestation": 1.0,
+      "agriculture": 1.0,
+      "carbon_removal": 1.0,
+      "step": 0,
+      "year": 1990.0
+    },
+    {
+      "energy_heat": 0.7329665792707601,
+      "transport": 1.1466542391234473,
+      "buildings": 1.2327862160930538,
+      "industry": 4.263620404034279,
+      "deforestation": 1.2382607167144422,
+      "agriculture": 0.8879567002999176,
+      "carbon_removal": 0.4326281154843096,
+      "step": 1,
+      "year": 1995.0
+    },
+    {
+      "energy_heat": 0.797636690348179,
+      "transport": 1.2516995296754705,
+      "buildings": 1.3382858066292307,
+      "industry": 4.8614858913546355,
+      "deforestation": 1.3252063848250286,
+      "agriculture": 0.9405086867618947,
+      "carbon_removal": 0.4648940968575019,
+      "step": 2,
+      "year": 2000.0
+    },
+    {
+      "energy_heat": 0.8832160574396842,
+      "transport": 1.3717444630350395,
+      "buildings": 1.4623079285872826,
+      "industry": 5.218163729678337,
+      "deforestation": 1.3195941394566757,
+      "agriculture": 1.013908957626231,
+      "carbon_removal": 0.49715216137363094,
+      "step": 3,
+      "year": 2005.0
+    },
+    {
+      "energy_heat": 0.9795443698329818,
+      "transport": 1.4523800702943714,
+      "buildings": 1.5652242363751219,
+      "industry": 5.648092111458803,
+      "deforestation": 1.4037775923938802,
+      "agriculture": 1.0717177808713956,
+      "carbon_removal": 0.5293705654272356,
+      "step": 4,
+      "year": 2010.0
+    },
+    {
+      "energy_heat": 1.0538550591547193,
+      "transport": 1.5872701220782992,
+      "buildings": 1.6974671576459173,
+      "industry": 5.973001459122555,
+      "deforestation": 1.4796825770747777,
+      "agriculture": 1.117185579907491,
+      "carbon_removal": 0.561668290405889,
+      "step": 5,
+      "year": 2015.0
+    },
+    {
+      "energy_heat": 1.1420961570559804,
+      "transport": 1.6913085596452793,
+      "buildings": 1.807082265065972,
+      "industry": 6.2800087301838206,
+      "deforestation": 1.5880707059298218,
+      "agriculture": 1.1763497863662704,
+      "carbon_removal": 0.5938924379512687,
+      "step": 6,
+      "year": 2020.0
+    },
+    {
+      "energy_heat": 1.1953030216016094,
+      "transport": 1.8561020251731368,
+      "buildings": 1.9167835345934032,
+      "industry": 6.8389647862986624,
+      "deforestation": 1.5656277870318802,
+      "agriculture": 1.2410264976545295,
+      "carbon_removal": 0.6261447589756227,
+      "step": 7,
+      "year": 2025.0
+    },
+    {
+      "energy_heat": 1.265124671710296,
+      "transport": 1.9088621463814692,
+      "buildings": 2.0108552333648753,
+      "industry": 7.340875102222207,
+      "deforestation": 1.7858688119260768,
+      "agriculture": 1.3086111600361814,
+      "carbon_removal": 0.6584424839542761,
+      "step": 8,
+      "year": 2030.0
+    },
+    {
+      "energy_heat": 1.3782543630211928,
+      "transport": 2.0135801815531424,
+      "buildings": 2.1440849143427188,
+      "industry": 7.669549354216753,
+      "deforestation": 1.7785797683047002,
+      "agriculture": 1.3476160963356667,
+      "carbon_removal": 0.6906688048649442,
+      "step": 9,
+      "year": 2035.0
+    },
+    {
+      "energy_heat": 1.4291969459043943,
+      "transport": 2.1658403693514434,
+      "buildings": 2.23935471271954,
+      "industry": 8.268302239288257,
+      "deforestation": 1.7961673077086497,
+      "agriculture": 1.4154185100653889,
+      "carbon_removal": 0.7229665298435975,
+      "step": 10,
+      "year": 2040.0
+    },
+    {
+      "energy_heat": 1.5431878641996666,
+      "transport": 2.2478420645105173,
+      "buildings": 2.3549243726905162,
+      "industry": 8.639254586699828,
+      "deforestation": 1.8109054731379335,
+      "agriculture": 1.4712302550479368,
+      "carbon_removal": 0.755201558015967,
+      "step": 11,
+      "year": 2045.0
+    }
+  ],
+  "regions": [
+    "North America",
+    "Europe",
+    "Africa",
+    "South America",
+    "Southeast Asia",
+    "Asia Major",
+    "Australia"
+  ]
+}

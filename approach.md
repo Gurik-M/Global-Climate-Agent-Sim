@@ -745,3 +745,5 @@ Set lower values for:
 | `simulation/agents/batch.py` | One LLM call per 5-year step, JSON for all regions; optional `scenario` prompt suffix |
 | `run_simulation.py` | CLI: `--steps N` (default 7 ≈ 1990–2020), `--output` JSON, `--scenario` |
 | `plot_results.py` | Plots ratios vs `year` or legacy `decade`; writes `emissions_by_period.png` |
+| `ClimateModel.py` | Computes the overall climate emissions by taking in the human emissions results simulated by the AI agernts as input |
+
